@@ -54,6 +54,22 @@ function initializeServiceWorker() {
   // B5. TODO - In the event that the service worker registration fails, console
   //            log that it has failed.
   // STEPS B6 ONWARDS WILL BE IN /sw.js
+  // B1. Check if service workers are supported
+  if ('serviceWorker' in navigator) {
+    // B2. Listen for 'load' event on window
+    window.addEventListener('load', () => {
+      // B3. Register service worker
+      navigator.serviceWorker.register('./sw.js')
+        .then((registration) => {
+          // B4. Success log
+          console.log('ServiceWorker registered with scope:', registration.scope);
+        })
+        .catch((error) => {
+          // B5. Failure log
+          console.error('ServiceWorker registration failed:', error);
+        });
+    });
+  }
 }
 
 /**
@@ -71,13 +87,41 @@ async function getRecipes() {
   /**************************/
   // The rest of this method will be concerned with requesting the recipes
   // from the network
+  const storedRecipes = localStorage.getItem('recipes');
+  if (storedRecipes) {
+    return JSON.parse(storedRecipes);
+  }
+  const recipes = [];
+  return new Promise(async (resolve, reject) => {
+    for (let i = 0; i < RECIPE_URLS.length; i++) {
+      const url = RECIPE_URLS[i];
+      try {
+        // A6. Fetch the URL
+        const response = await fetch(url);
+        // A7. Parse the response as JSON
+        const recipe = await response.json();
+        // A8. Add the recipe to the array
+        recipes.push(recipe);
+      } catch (err) {
+        // A10. Log the error
+        console.error(`Failed to fetch ${url}:`, err);
+        // A11. Reject the Promise with error
+        reject(err);
+        return;
+      }
+    }
+    saveRecipesToStorage(recipes);
+    resolve(recipes);
+  });
   // A2. TODO - Create an empty array to hold the recipes that you will fetch
+   
   // A3. TODO - Return a new Promise. If you are unfamiliar with promises, MDN
   //            has a great article on them. A promise takes one parameter - A
   //            function (we call these callback functions). That function will
   //            take two parameters - resolve, and reject. These are functions
   //            you can call to either resolve the Promise or Reject it.
   /**************************/
+  
   // A4-A11 will all be *inside* the callback function we passed to the Promise
   // we're returning
   /**************************/
